@@ -1,32 +1,45 @@
 import importlib
 import importlib.util
-from typing import Sequence, TypeAlias, Union
+import logging
+from typing import Sequence, Union
 
 from functag import annotate
 
+logger = logging.getLogger(__name__)
+
+DATAFRAME_PACKAGES = (
+    "pandera",
+    "polars",
+    "pandas",
+)
+
 INSTALLED_PACKAGES = {
     pkg_name: (importlib.util.find_spec(pkg_name) is not None)
-    for pkg_name in ("pandera", "polars", "pandas")
+    for pkg_name in (DATAFRAME_PACKAGES)
 }
+if not any(INSTALLED_PACKAGES["polars"], INSTALLED_PACKAGES["pandas"]):
+    logger.info("Need one of `polars` or `pandas` to use dataframe.py annotations.")
+else:
+    from functag._types import DataFrame, StrictSequenceStr
 
-if (INSTALLED_PACKAGES["polars"]) and (INSTALLED_PACKAGES["pandas"]):
-    import pandas as pd
-    import polars as pl
-
-    DataFrame: TypeAlias = Union[pl.DataFrame, pl.LazyFrame, pd.DataFrame]
-
-    def requires(cols: Sequence):
+    def requires(cols: StrictSequenceStr):
         """
         Annotate which columns are required in a DataFrame function.
         """
         return annotate(required_cols=cols)
 
-    def output_may_omit(cols: Sequence):
+    def output_may_omit(cols: StrictSequenceStr):
         """
         Annotate which columns may be missing in the output of a function vs. the Schema.
         Check this with errors.catch_missing_cols instead of setting columns as optional in a schema.
         """
         return annotate(output_may_omit=set(cols))
+
+    def attaches(cols: StrictSequenceStr):
+        """
+        Annotate which columns are attached and joined in a DataFrame function.
+        """
+        return annotate(attaches_cols=cols)
 
     def lookup(data: Union[DataFrame, Sequence[DataFrame]]):
         """
@@ -34,14 +47,8 @@ if (INSTALLED_PACKAGES["polars"]) and (INSTALLED_PACKAGES["pandas"]):
         """
         return annotate(references_df=data)
 
-    def attaches(cols: Sequence):
-        """
-        Annotate which columns are attached and joined in a DataFrame function.
-        """
-        return annotate(attaches_cols=cols)
 
-
-if pandera_installed := (importlib.util.find_spec("pandera") is not None):
+if INSTALLED_PACKAGES["pandera"]:
     import pandera as pa
 
     def schemas(schemas: Union[Sequence[pa.DataFrameModel], pa.DataFrameModel]):
