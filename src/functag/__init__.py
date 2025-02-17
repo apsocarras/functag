@@ -74,9 +74,6 @@ def warn_str(*param_names: str) -> Callable[[F], F]:
     """
     Decorator to warn and abort function if designated parameters are set to str.
     Created because Python doesn't distinguish between Sequence[str] and str (no `char` type).
-
-    >>> def test
-
     """
 
     def decorator(func: F) -> F:
@@ -108,8 +105,3 @@ def warn_str(*param_names: str) -> Callable[[F], F]:
         return wrapper
 
     return decorator
-
-
-@warn_str("apple", "banana")
-def test_func(apple: Sequence[str], banana: Sequence[str]):
-    return
