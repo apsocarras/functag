@@ -2,7 +2,7 @@ import copy
 import warnings
 from functools import wraps
 from inspect import signature
-from typing import Any, Callable, Sequence, TypeVar
+from typing import Any, Callable, TypeVar
 
 
 def annotate(**kwargs):

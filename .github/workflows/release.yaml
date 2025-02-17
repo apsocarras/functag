@@ -5,6 +5,10 @@
 # https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/#workflow-definition
 # https://docs.astral.sh/uv/guides/integration/github/#installation
 
+# To tag a commit and push to release: 
+# git tag v1.2.4
+# git push v1.2.4 
+
 name: Release
 
 on:
