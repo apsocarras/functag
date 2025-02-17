@@ -1,14 +1,15 @@
 [project]
 name = "functag"
-version = "0.1.1"
+# version = "0.1.1"
+dynamic = ["version"]
 description = " Package with general decorators for annotating functions and classes"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=64", "setuptools_scm>=8"]
+build-backend = "setuptools.build_meta"
 
 [dependency-groups]
 dev = [
@@ -16,3 +17,6 @@ dev = [
     "pytest>=8.3.4",
     "python-dotenv>=1.0.1",
 ]
+
+
+[tool.setuptools_scm]
