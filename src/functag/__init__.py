@@ -1,5 +1,8 @@
 import copy
+import warnings
 from functools import wraps
+from inspect import signature
+from typing import Any, Callable, Sequence, TypeVar
 
 
 def annotate(**kwargs):
@@ -62,3 +65,51 @@ def annotate(**kwargs):
         return wrapper
 
     return decorator
+
+
+F = TypeVar("F", bound=Callable[..., Any])
+
+
+def warn_str(*param_names: str) -> Callable[[F], F]:
+    """
+    Decorator to warn and abort function if designated parameters are set to str.
+    Created because Python doesn't distinguish between Sequence[str] and str (no `char` type).
+
+    >>> def test
+
+    """
+
+    def decorator(func: F) -> F:
+        @wraps(func)
+        def wrapper(*args, **kwargs) -> Any:
+            func_sig = signature(func)
+            unrecognized_params = {
+                p for p in param_names if p not in func_sig.parameters
+            }
+            if unrecognized_params:
+                raise ValueError(
+                    f"Unrecognized parameters given to {warn_str.__name__}: {unrecognized_params}"
+                )
+            bound_args = func_sig.bind(*args, **kwargs)
+            bound_args.apply_defaults()
+
+            param_strs = {
+                name: bound_args.arguments[name]
+                for name in param_names
+                if isinstance(bound_args.arguments[name], str)
+            }
+            if param_strs:
+                warnings.warn(
+                    f"Provided parameters should not be `str`: {param_strs}. `{func.__name__}` returning None"
+                )
+                return None
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+@warn_str("apple", "banana")
+def test_func(apple: Sequence[str], banana: Sequence[str]):
+    return
