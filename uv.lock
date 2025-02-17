@@ -130,7 +130,7 @@ wheels = [
 
 [[package]]
 name = "functag"
-version = "1.2.5.dev0+g538b3dd.d20250217"
+version = "1.2.5.dev2+g54d16fa.d20250217"
 source = { editable = "." }
 
 [package.dev-dependencies]
