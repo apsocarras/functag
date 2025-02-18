@@ -1,8 +1,8 @@
 import copy
 import warnings
 from functools import wraps
-from inspect import signature
-from typing import Any, Callable, TypeVar
+from inspect import Signature, signature
+from typing import Any, Callable, Literal, TypeVar
 
 
 def annotate(**kwargs):
@@ -67,6 +67,16 @@ def annotate(**kwargs):
     return decorator
 
 
+def _raise_signature(func: Callable[..., Any], *param_names: str) -> Signature:
+    func_sig = signature(func)
+    unrecognized_params = {p for p in param_names if p not in func_sig.parameters}
+    if unrecognized_params:
+        raise ValueError(
+            f"Unrecognized parameters given to {func.__name__}: {unrecognized_params}"
+        )
+    return func_sig
+
+
 F = TypeVar("F", bound=Callable[..., Any])
 
 
@@ -79,14 +89,7 @@ def warn_str(*param_names: str) -> Callable[[F], F]:
     def decorator(func: F) -> F:
         @wraps(func)
         def wrapper(*args, **kwargs) -> Any:
-            func_sig = signature(func)
-            unrecognized_params = {
-                p for p in param_names if p not in func_sig.parameters
-            }
-            if unrecognized_params:
-                raise ValueError(
-                    f"Unrecognized parameters given to {warn_str.__name__}: {unrecognized_params}"
-                )
+            func_sig: Signature = _raise_signature(func, *param_names)
             bound_args = func_sig.bind(*args, **kwargs)
             bound_args.apply_defaults()
 
@@ -100,6 +103,57 @@ def warn_str(*param_names: str) -> Callable[[F], F]:
                     f"Provided parameters should not be `str`: {param_strs}. `{func.__name__}` returning None"
                 )
                 return None
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def requires(
+    *param_names: str,
+    quantifier: Literal["all", "at_least_one", "exactly_one"] = "all",
+    handler: Literal["warn_None", "warn_default", "raise"] = "raise",
+) -> Callable[[F], F]:
+    """
+    Decorator to indicate at least or exactly one of the parameters given are required
+    """
+    valid_quantifiers = ["all", "at_least_one", "exactly_one"]
+    valid_handlers = ["warn_None", "warn_default", "raise"]
+
+    if quantifier not in set(valid_quantifiers):
+        raise ValueError(f"Invalid value for quantifier: {quantifier}")
+    elif handler not in set(valid_handlers):
+        raise ValueError(f"Invalid value for handler: {handler}")
+
+    def decorator(func: F) -> F:
+        @wraps(func)
+        def wrapper(*args, **kwargs) -> Any:
+            func_sig: Signature = _raise_signature(func, *param_names)
+            bound_args = func_sig.bind(*args, **kwargs)
+            bound_args.apply_defaults()
+            params = {p: bound_args.arguments.get(p, None) for p in param_names}
+            have_vals = sum(v is not None for v in params.values())
+
+            if (
+                (quantifier == "all" and have_vals != len(param_names))
+                or (quantifier == "at_least_one" and have_vals == 0)
+                or (quantifier == "exactly_one" and have_vals != 1)
+            ):
+                msg = (
+                    f"{func.__name__} requires {' '.join(quantifier.split('_'))} of: {param_names}."
+                    f" Provided: {params}"
+                )
+                match handler:
+                    case "raise":
+                        raise ValueError(msg)
+                    case "warn_None":
+                        warnings.warn(msg)
+                        return None
+                    case "warn_default":
+                        warnings.warn(msg)
+                        return func(*args, **kwargs)
+
             return func(*args, **kwargs)
 
         return wrapper
