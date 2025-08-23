@@ -5,7 +5,9 @@ dynamic = ["version"]
 description = " Package with general decorators for annotating functions and classes"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "beartype>=0.21.0",
+]
 
 [build-system]
 requires = ["setuptools>=64", "setuptools_scm>=8"]
